@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#15110f">
+<title>Mangateca</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="description" content="La tua collezione di manga e fumetti, volume per volume.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mangateca">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+:root{
+  --bg:#15110f;
+  --panel:#1f1a17;
+  --panel-2:#28211d;
+  --line:#352c27;
+  --ink:#f3ece2;
+  --ink-2:#b7a99a;
+  --ink-3:#7d7066;
+  --accent:#e8552d;
+  --accent-soft:#3a201a;
+  --gold:#d9a441;
+  --green:#5fb87a;
+  --blue:#5b9bd5;
+  --radius:14px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px}
+
+/* ---- Header ---- */
+.app-head{
+  position:sticky;top:0;z-index:40;
+  background:linear-gradient(180deg,var(--bg) 70%,rgba(21,17,15,0));
+  padding:18px 18px 10px;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mark{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--accent);
+  display:grid;place-items:center;flex:none;
+  box-shadow:0 4px 14px rgba(232,85,45,.35);
+}
+.brand .mark svg{width:20px;height:20px;display:block}
+.brand h1{font-size:21px;font-weight:700;letter-spacing:-.3px}
+.brand .sub{font-size:12px;color:var(--ink-3);font-weight:500;margin-top:-2px}
+
+.search-row{margin-top:14px;display:flex;gap:9px}
+.search-box{
+  flex:1;position:relative;display:flex;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:0 12px;height:44px;
+}
+.search-box svg{width:18px;height:18px;color:var(--ink-3);flex:none}
+.search-box input{
+  flex:1;background:none;border:none;color:var(--ink);outline:none;
+  padding-left:9px;
+}
+.search-box input::placeholder{color:var(--ink-3)}
+.icon-btn{
+  width:44px;height:44px;border-radius:11px;flex:none;
+  background:var(--panel);border:1px solid var(--line);
+  display:grid;place-items:center;color:var(--ink-2);
+  transition:.15s;
+}
+.icon-btn:active{transform:scale(.93)}
+.icon-btn svg{width:20px;height:20px}
+
+/* ---- Stats strip ---- */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  padding:6px 18px 4px;
+}
+.stat{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:12px;padding:11px 12px;
+}
+.stat .n{font-size:21px;font-weight:700;line-height:1.1}
+.stat .l{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:1px}
+.stat.accent .n{color:var(--accent)}
+.stat.gold .n{color:var(--gold)}
+.stat.green .n{color:var(--green)}
+
+/* ---- Filter chips ---- */
+.chips{
+  display:flex;gap:8px;overflow-x:auto;padding:12px 18px 6px;
+  scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;padding:7px 14px;border-radius:20px;
+  background:var(--panel);border:1px solid var(--line);
+  font-size:13px;font-weight:600;color:var(--ink-2);
+  white-space:nowrap;transition:.15s;
+}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip:active{transform:scale(.95)}
+
+/* ---- List ---- */
+.list{padding:8px 18px calc(120px + var(--safe-b));display:flex;flex-direction:column;gap:11px}
+
+.series-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;
+}
+.sc-head{display:flex;gap:13px;padding:13px 13px 11px;align-items:flex-start}
+.cover{
+  width:58px;height:82px;border-radius:8px;flex:none;
+  background:var(--panel-2);
+  display:grid;place-items:center;overflow:hidden;
+  border:1px solid var(--line);position:relative;
+}
+.cover img{width:100%;height:100%;object-fit:cover}
+.cover .ph{font-size:25px;font-weight:800;color:var(--ink-3);opacity:.5}
+.cover .type-tag{
+  position:absolute;top:0;left:0;
+  font-size:9px;font-weight:700;letter-spacing:.5px;
+  background:rgba(21,17,15,.78);color:var(--gold);
+  padding:2px 5px;border-bottom-right-radius:7px;text-transform:uppercase;
+}
+.sc-info{flex:1;min-width:0}
+.sc-title{font-size:16px;font-weight:700;line-height:1.25;letter-spacing:-.2px}
+.sc-author{font-size:12.5px;color:var(--ink-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-meta{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}
+.badge{
+  font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.b-reading{background:var(--accent-soft);color:var(--accent)}
+.b-done{background:#1d3326;color:var(--green)}
+.b-plan{background:#22282f;color:var(--blue)}
+.b-paused{background:#2e2920;color:var(--gold)}
+.b-queued{background:#1d2a33;color:var(--blue);display:inline-flex;align-items:center;gap:5px}
+.q-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:qpulse 1.1s ease-in-out infinite}
+@keyframes qpulse{0%,100%{opacity:.35}50%{opacity:1}}
+.b-confirm{background:#3a2a16;color:var(--gold);cursor:pointer}
+.count-pill{
+  font-size:12px;font-weight:700;color:var(--ink-2);
+  background:var(--panel-2);padding:3px 9px;border-radius:6px;
+}
+.sc-menu{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--ink-3)}
+.sc-menu:active{background:var(--panel-2)}
+.sc-menu svg{width:18px;height:18px}
+
+/* progress */
+.prog-wrap{padding:0 13px 12px}
+.prog-bar{height:6px;border-radius:4px;background:var(--panel-2);overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px;transition:width .35s}
+.prog-txt{font-size:11px;color:var(--ink-3);margin-top:5px;font-weight:600}
+
+/* volumes */
+.vols{
+  display:flex;flex-wrap:wrap;gap:7px;
+  padding:11px 13px 14px;border-top:1px solid var(--line);
+}
+.vol{
+  width:34px;height:34px;border-radius:8px;
+  display:grid;place-items:center;
+  font-size:13px;font-weight:700;
+  background:var(--panel-2);border:1px solid var(--line);
+  color:var(--ink-3);transition:.12s;position:relative;
+}
+.vol.owned{background:var(--accent-soft);border-color:#5a2c1e;color:var(--accent)}
+.vol.read{background:var(--accent);border-color:var(--accent);color:#fff}
+.vol.read::after{
+  content:"";position:absolute;bottom:3px;right:3px;
+  width:5px;height:5px;border-radius:50%;background:#fff
+}
+.vol:active{transform:scale(.88)}
+.vol-add{border-style:dashed;color:var(--ink-3)}
+.vols-legend{font-size:10.5px;color:var(--ink-3);display:flex;gap:12px;margin-top:9px;flex-basis:100%;font-weight:600}
+.vols-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:-1px}
+
+/* empty */
+.empty{
+  text-align:center;padding:60px 30px;color:var(--ink-3);
+}
+.empty svg{width:54px;height:54px;opacity:.35;margin-bottom:14px}
+.empty h3{font-size:17px;color:var(--ink-2);font-weight:700;margin-bottom:5px}
+.empty p{font-size:14px;line-height:1.55}
+
+/* ---- FAB ---- */
+.fab{
+  position:fixed;right:18px;bottom:calc(20px + var(--safe-b));z-index:45;
+  width:58px;height:58px;border-radius:18px;
+  background:var(--accent);color:#fff;
+  display:grid;place-items:center;
+  box-shadow:0 8px 24px rgba(232,85,45,.45);
+  transition:.15s;
+}
+.fab:active{transform:scale(.9)}
+.fab svg{width:26px;height:26px}
+
+/* ---- Sheet / Modal ---- */
+.overlay{
+  position:fixed;inset:0;z-index:90;
+  background:rgba(8,6,5,.6);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:.22s;
+}
+.overlay.show{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:91;
+  background:var(--panel);
+  border-top-left-radius:22px;border-top-right-radius:22px;
+  border-top:1px solid var(--line);
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+  max-height:92vh;overflow-y:auto;
+  padding-bottom:calc(24px + var(--safe-b));
+}
+.sheet.show{transform:translateY(0)}
+.grabber{width:38px;height:4px;border-radius:3px;background:var(--line);margin:10px auto 4px}
+.sheet-head{padding:6px 20px 14px;display:flex;align-items:center;justify-content:space-between}
+.sheet-head h2{font-size:19px;font-weight:700}
+.sheet-close{font-size:14px;color:var(--accent);font-weight:600}
+
+.field{padding:0 20px 15px}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:11px;padding:13px 14px;color:var(--ink);outline:none;
+  transition:.15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:none;min-height:64px}
+
+/* ---- Autocomplete ---- */
+.ac-wrap{position:relative}
+.ac-drop{
+  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:5;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;max-height:288px;overflow-y:auto;
+  box-shadow:0 12px 30px rgba(0,0,0,.45);
+  display:none;
+}
+.ac-drop.show{display:block}
+.ac-item{
+  display:flex;gap:11px;align-items:center;
+  padding:9px 12px;border-bottom:1px solid var(--line);
+  transition:.12s;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:active{background:var(--panel)}
+.ac-thumb{
+  width:34px;height:48px;border-radius:6px;flex:none;overflow:hidden;
+  background:var(--panel);border:1px solid var(--line);
+  display:grid;place-items:center;
+}
+.ac-thumb img{width:100%;height:100%;object-fit:cover}
+.ac-thumb .ph{font-size:15px;font-weight:800;color:var(--ink-3);opacity:.5}
+.ac-body{flex:1;min-width:0}
+.ac-name{font-size:14px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-sub{font-size:11.5px;color:var(--ink-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ac-tag{
+  font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:2px 6px;border-radius:5px;flex:none;
+}
+.ac-tag.local{background:var(--accent-soft);color:var(--accent)}
+.ac-tag.online{background:#22282f;color:var(--blue)}
+.ac-section{
+  font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--ink-3);padding:8px 12px 5px;background:var(--panel);
+}
+.ac-state{
+  padding:11px 12px;font-size:12.5px;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;
+}
+.ac-spin{
+  width:13px;height:13px;border-radius:50%;flex:none;
+  border:2px solid var(--line);border-top-color:var(--accent);
+  animation:acspin .7s linear infinite;
+}
+@keyframes acspin{to{transform:rotate(360deg)}}
+.field input::placeholder,.field textarea::placeholder{color:var(--ink-3)}
+.field-row{display:flex;gap:11px}
+.field-row .field{flex:1;padding-left:0;padding-right:0}
+.field-row{padding:0 20px}
+
+.type-toggle{display:flex;gap:8px}
+.type-toggle button{
+  flex:1;padding:11px;border-radius:11px;font-size:14px;font-weight:600;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2);
+}
+.type-toggle button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.status-grid button{
+  padding:11px;border-radius:11px;font-size:13px;font-weight:600;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.status-grid button.on{color:#fff}
+.status-grid button[data-s="reading"].on{background:var(--accent);border-color:var(--accent)}
+.status-grid button[data-s="completed"].on{background:#2a6b42;border-color:#2a6b42}
+.status-grid button[data-s="planned"].on{background:#2d567d;border-color:#2d567d}
+.status-grid button[data-s="paused"].on{background:#8a6d1f;border-color:#8a6d1f}
+
+.save-btn{
+  margin:8px 20px 0;width:calc(100% - 40px);
+  background:var(--accent);color:#fff;font-size:16px;font-weight:700;
+  padding:15px;border-radius:13px;transition:.15s;
+}
+.save-btn:active{transform:scale(.98)}
+.del-btn{
+  margin:10px 20px 0;width:calc(100% - 40px);
+  background:none;color:#d9534f;font-size:14px;font-weight:600;
+  padding:11px;border-radius:11px;border:1px solid #3a2422;
+}
+
+/* detail sheet */
+.detail-cover{
+  width:88px;height:124px;border-radius:11px;flex:none;
+  background:var(--panel-2);border:1px solid var(--line);
+  display:grid;place-items:center;overflow:hidden;
+}
+.detail-cover img{width:100%;height:100%;object-fit:cover}
+.detail-cover .ph{font-size:34px;font-weight:800;color:var(--ink-3);opacity:.5}
+.detail-top{display:flex;gap:15px;padding:6px 20px 16px}
+.detail-meta h2{font-size:20px;font-weight:700;line-height:1.2;letter-spacing:-.3px}
+.detail-meta .auth{font-size:13.5px;color:var(--ink-2);margin-top:3px}
+.detail-meta .notes{font-size:13px;color:var(--ink-3);margin-top:9px;line-height:1.5}
+.detail-stats{display:flex;gap:9px;padding:0 20px 16px}
+.dstat{flex:1;background:var(--panel-2);border:1px solid var(--line);border-radius:11px;padding:11px;text-align:center}
+.dstat .n{font-size:19px;font-weight:700}
+.dstat .l{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.detail-sec-title{padding:4px 20px 10px;font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+.detail-sec-title .hint{font-weight:500;text-transform:none;letter-spacing:0;font-size:11px;color:var(--ink-3)}
+.detail-vols{display:flex;flex-wrap:wrap;gap:8px;padding:0 20px 18px}
+.dvol{
+  width:42px;height:42px;border-radius:10px;display:grid;place-items:center;
+  font-size:14px;font-weight:700;
+  background:var(--panel-2);border:1px solid var(--line);color:var(--ink-3);
+  transition:.12s;position:relative;
+}
+.dvol.owned{background:var(--accent-soft);border-color:#5a2c1e;color:var(--accent)}
+.dvol.read{background:var(--accent);border-color:var(--accent);color:#fff}
+.dvol.read::after{content:"";position:absolute;bottom:4px;right:4px;width:5px;height:5px;border-radius:50%;background:#fff}
+.dvol:active{transform:scale(.88)}
+.dvol-rm{border-style:dashed;color:#d9534f;font-size:18px}
+.detail-actions{display:flex;gap:10px;padding:6px 20px 0}
+.detail-actions button{
+  flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:700;
+  border:1px solid var(--line);background:var(--panel-2);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+.detail-actions button svg{width:17px;height:17px}
+.detail-actions .edit{background:var(--accent);border-color:var(--accent);color:#fff}
+.pend-banner{
+  margin:0 20px 16px;padding:12px 14px;border-radius:12px;
+  display:flex;align-items:center;gap:11px;font-size:12.5px;line-height:1.4;
+}
+.pend-banner b{font-size:13px}
+.pend-banner span{color:var(--ink-2)}
+.pend-banner.queued{background:#16242d;border:1px solid #234150;color:var(--blue)}
+.pend-banner.confirm{background:#2a2010;border:1px solid #4a3a1c;color:var(--gold)}
+.pend-banner button{
+  margin-left:auto;flex:none;background:var(--gold);color:#1a1407;
+  font-weight:700;font-size:13px;padding:9px 15px;border-radius:10px;
+}
+.pend-banner button:active{transform:scale(.95)}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(90px + var(--safe-b));z-index:100;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--panel-2);border:1px solid var(--line);
+  color:var(--ink);font-size:14px;font-weight:600;
+  padding:11px 18px;border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:.25s;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.menu-pop{
+  position:fixed;z-index:95;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:12px;
+  padding:5px;min-width:160px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transform:scale(.95);transition:.13s;
+}
+.menu-pop.show{opacity:1;pointer-events:auto;transform:scale(1)}
+.menu-pop button{
+  display:flex;align-items:center;gap:10px;width:100%;
+  padding:10px 12px;border-radius:8px;font-size:14px;font-weight:600;color:var(--ink);text-align:left;
+}
+.menu-pop button:active{background:var(--panel)}
+.menu-pop button svg{width:17px;height:17px;color:var(--ink-3)}
+.menu-pop button.danger{color:#d9534f}
+.menu-pop button.danger svg{color:#d9534f}
+.menu-div{height:1px;background:var(--line);margin:4px 0}
+</style>
+</head>
+<body>
+
+<div class="app-head">
+  <div class="brand">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Mangateca</h1>
+      <div class="sub">la tua collezione, volume per volume</div>
+    </div>
+  </div>
+
+  <div class="search-row">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Cerca serie o autore…" autocomplete="off">
+    </div>
+    <button class="icon-btn" id="sortBtn" aria-label="Ordina">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="chips" id="chips"></div>
+
+<div class="list" id="list"></div>
+
+<button class="fab" id="addFab" aria-label="Aggiungi serie">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<!-- overlay + sheets -->
+<div class="overlay" id="overlay"></div>
+
+<div class="sheet" id="formSheet">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2 id="formTitle">Nuova serie</h2>
+    <button class="sheet-close" data-close>Annulla</button>
+  </div>
+  <div class="field">
+    <label>Tipo</label>
+    <div class="type-toggle" id="typeToggle">
+      <button data-type="manga" class="on">Manga</button>
+      <button data-type="comic">Fumetto</button>
+      <button data-type="manhwa">Manhwa</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Titolo</label>
+    <div class="ac-wrap">
+      <input id="fTitle" type="text" placeholder="es. Berserk" autocomplete="off" spellcheck="false">
+      <div class="ac-drop" id="acDrop"></div>
+    </div>
+  </div>
+  <div class="field">
+    <label>Autore</label>
+    <input id="fAuthor" type="text" placeholder="es. Kentaro Miura">
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Volumi totali</label>
+      <input id="fTotal" type="number" min="0" inputmode="numeric" placeholder="es. 41">
+    </div>
+    <div class="field">
+      <label>Copertina (URL)</label>
+      <input id="fCover" type="text" placeholder="opzionale">
+    </div>
+  </div>
+  <div class="field">
+    <label>Stato</label>
+    <div class="status-grid" id="statusGrid">
+      <button data-s="reading" class="on">In lettura</button>
+      <button data-s="completed">Completata</button>
+      <button data-s="planned">Da iniziare</button>
+      <button data-s="paused">In pausa</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Note</label>
+    <textarea id="fNotes" placeholder="edizione, prezzo, dove l'hai comprato…"></textarea>
+  </div>
+  <button class="save-btn" id="saveBtn">Salva serie</button>
+  <button class="del-btn" id="delBtn" style="display:none">Elimina serie</button>
+</div>
+
+<div class="sheet" id="detailSheet">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2 style="font-size:14px;color:var(--ink-3);font-weight:600">Dettaglio serie</h2>
+    <button class="sheet-close" data-close>Chiudi</button>
+  </div>
+  <div id="detailBody"></div>
+</div>
+
+<div class="menu-pop" id="menuPop"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const LS_KEY = "mangateca.v1";
+const $ = s => document.querySelector(s);
+
+let DB = load();
+let filter = "all";
+let sortMode = "recent";
+let query = "";
+let editingId = null;
+let formType = "manga";
+let formStatus = "reading";
+let openDetailId = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return seed();
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){} }
+
+function seed(){
+  return [
+    {id:uid(),type:"manga",title:"Berserk",author:"Kentaro Miura",total:41,status:"reading",cover:"",notes:"Edizione Collection",owned:[1,2,3,4,5,6,7,8,9,10],read:[1,2,3,4,5,6,7],ts:Date.now()-100000},
+    {id:uid(),type:"manga",title:"Chainsaw Man",author:"Tatsuki Fujimoto",total:17,status:"completed",cover:"",notes:"Parte 1 completa",owned:[1,2,3,4,5,6,7,8,9,10,11],read:[1,2,3,4,5,6,7,8,9,10,11],ts:Date.now()-200000},
+    {id:uid(),type:"comic",title:"Saga",author:"B. K. Vaughan, F. Staples",total:11,status:"reading",cover:"",notes:"Edizione BAO",owned:[1,2,3],read:[1,2],ts:Date.now()-50000},
+    {id:uid(),type:"manhwa",title:"Solo Leveling",author:"Chugong, DUBU",total:0,status:"planned",cover:"",notes:"",owned:[],read:[],ts:Date.now()-300000},
+  ];
+}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+const STATUS = {
+  reading:  {label:"In lettura",  cls:"b-reading"},
+  completed:{label:"Completata",  cls:"b-done"},
+  planned:  {label:"Da iniziare", cls:"b-plan"},
+  paused:   {label:"In pausa",    cls:"b-paused"},
+};
+const TYPE_LABEL = {manga:"Manga",comic:"Fumetto",manhwa:"Manhwa"};
+
+/* ---------- render ---------- */
+function render(){
+  renderStats();
+  renderChips();
+  renderList();
+}
+
+function renderStats(){
+  const series = DB.length;
+  const ownedVols = DB.reduce((a,s)=>a+s.owned.length,0);
+  const readVols  = DB.reduce((a,s)=>a+s.read.length,0);
+  $("#stats").innerHTML = `
+    <div class="stat accent"><div class="n">${series}</div><div class="l">Serie</div></div>
+    <div class="stat gold"><div class="n">${ownedVols}</div><div class="l">Volumi</div></div>
+    <div class="stat green"><div class="n">${readVols}</div><div class="l">Letti</div></div>`;
+}
+
+function renderChips(){
+  const counts = {all:DB.length};
+  for(const k in STATUS) counts[k]=DB.filter(s=>s.status===k).length;
+  const defs = [["all","Tutte"],["reading","In lettura"],["completed","Completate"],["planned","Da iniziare"],["paused","In pausa"]];
+  $("#chips").innerHTML = defs.map(([k,l])=>
+    `<button class="chip ${filter===k?'on':''}" data-f="${k}">${l} ${counts[k]?`· ${counts[k]}`:''}</button>`
+  ).join("");
+}
+
+function filtered(){
+  let arr = DB.slice();
+  if(filter!=="all") arr = arr.filter(s=>s.status===filter);
+  if(query){
+    const q = query.toLowerCase();
+    arr = arr.filter(s=>s.title.toLowerCase().includes(q)||(s.author||"").toLowerCase().includes(q));
+  }
+  if(sortMode==="recent") arr.sort((a,b)=>b.ts-a.ts);
+  else if(sortMode==="title") arr.sort((a,b)=>a.title.localeCompare(b.title));
+  else if(sortMode==="progress") arr.sort((a,b)=>prog(b)-prog(a));
+  return arr;
+}
+function prog(s){ return s.total>0 ? s.read.length/s.total : (s.owned.length?s.read.length/s.owned.length:0); }
+
+function renderList(){
+  const arr = filtered();
+  if(!arr.length){
+    $("#list").innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <h3>${query||filter!=='all'?'Nessun risultato':'Collezione vuota'}</h3>
+      <p>${query||filter!=='all'?'Prova a cambiare ricerca o filtro.':'Tocca + per aggiungere la tua prima serie.'}</p>
+    </div>`;
+    return;
+  }
+  $("#list").innerHTML = arr.map(card).join("");
+}
+
+function card(s){
+  const owned = s.owned.length, read = s.read.length;
+  const denom = s.total>0 ? s.total : Math.max(owned,1);
+  const pct = s.total>0 ? Math.round(read/s.total*100) : (owned?Math.round(read/owned*100):0);
+  const st = STATUS[s.status];
+  // volume chips: show up to total (or owned+some)
+  const maxShow = s.total>0 ? s.total : owned;
+  let vols = "";
+  for(let i=1;i<=maxShow;i++){
+    const isOwned = s.owned.includes(i), isRead = s.read.includes(i);
+    const cls = isRead?"read":isOwned?"owned":"";
+    vols += `<button class="vol ${cls}" data-vol="${i}" data-id="${s.id}">${i}</button>`;
+  }
+  vols += `<button class="vol vol-add" data-addvol="${s.id}">+</button>`;
+
+  const cover = s.cover
+    ? `<img src="${esc(s.cover)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="ph" style="display:none">${esc(s.title[0]||'?')}</span>`
+    : `<span class="ph">${esc(s.title[0]||'?')}</span>`;
+
+  return `<div class="series-card" data-card="${s.id}">
+    <div class="sc-head">
+      <div class="cover" data-open="${s.id}">
+        <span class="type-tag">${TYPE_LABEL[s.type]}</span>
+        ${cover}
+      </div>
+      <div class="sc-info" data-open="${s.id}">
+        <div class="sc-title">${esc(s.title)}</div>
+        <div class="sc-author">${esc(s.author||'—')}</div>
+        <div class="sc-meta">
+          <span class="badge ${st.cls}">${st.label}</span>
+          <span class="count-pill">${owned}${s.total>0?'/'+s.total:''} vol.</span>
+          ${s.pending==="queued"?`<span class="badge b-queued"><span class="q-dot"></span>in coda</span>`:""}
+          ${s.pending==="confirm"?`<span class="badge b-confirm">da confermare</span>`:""}
+        </div>
+      </div>
+      <button class="sc-menu" data-menu="${s.id}">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+      </button>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+      <div class="prog-txt">${read} letti${s.total>0?` di ${s.total}`:owned?` di ${owned} posseduti`:''} · ${pct}%</div>
+    </div>
+    <div class="vols">
+      ${vols}
+      <div class="vols-legend">
+        <span><i style="background:var(--panel-2);border:1px solid var(--line)"></i>mancante</span>
+        <span><i style="background:var(--accent-soft);border:1px solid #5a2c1e"></i>posseduto</span>
+        <span><i style="background:var(--accent)"></i>letto</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ---------- volume toggle (3-state: none -> owned -> read -> none) ---------- */
+function toggleVol(id,n){
+  const s = DB.find(x=>x.id===id); if(!s) return;
+  const hasOwned = s.owned.includes(n), hasRead = s.read.includes(n);
+  if(!hasOwned && !hasRead){ s.owned.push(n); }
+  else if(hasOwned && !hasRead){ s.read.push(n); }
+  else { s.owned = s.owned.filter(v=>v!==n); s.read = s.read.filter(v=>v!==n); }
+  s.owned.sort((a,b)=>a-b); s.read.sort((a,b)=>a-b);
+  save(); render();
+  if(openDetailId===id) renderDetail(id);
+}
+
+function addVolume(id){
+  const s = DB.find(x=>x.id===id); if(!s) return;
+  const next = s.total>0
+    ? (s.owned.length<s.total ? s.owned.length+1 : null)
+    : (Math.max(0,...s.owned)+1);
+  if(next===null){ toast("Tutti i volumi sono già posseduti"); return; }
+  if(!s.owned.includes(next)) s.owned.push(next);
+  s.owned.sort((a,b)=>a-b);
+  save(); render();
+  if(openDetailId===id) renderDetail(id);
+  toast(`Volume ${next} aggiunto`);
+}
+
+/* ---------- form sheet ---------- */
+function openForm(id){
+  editingId = id||null;
+  const s = id ? DB.find(x=>x.id===id) : null;
+  $("#formTitle").textContent = s ? "Modifica serie" : "Nuova serie";
+  $("#fTitle").value  = s?s.title:"";
+  $("#fAuthor").value = s?s.author:"";
+  $("#fTotal").value  = s&&s.total?s.total:"";
+  $("#fCover").value  = s?s.cover:"";
+  $("#fNotes").value  = s?s.notes:"";
+  formType   = s?s.type:"manga";
+  formStatus = s?s.status:"reading";
+  syncToggles();
+  $("#delBtn").style.display = s?"block":"none";
+  hideAC();
+  openSheet("#formSheet");
+}
+function syncToggles(){
+  document.querySelectorAll("#typeToggle button").forEach(b=>b.classList.toggle("on",b.dataset.type===formType));
+  document.querySelectorAll("#statusGrid button").forEach(b=>b.classList.toggle("on",b.dataset.s===formStatus));
+}
+function saveForm(){
+  const title = $("#fTitle").value.trim();
+  if(!title){ toast("Inserisci un titolo"); return; }
+  const total = parseInt($("#fTotal").value)||0;
+  const data = {
+    title, author:$("#fAuthor").value.trim(),
+    total, cover:$("#fCover").value.trim(), notes:$("#fNotes").value.trim(),
+    type:formType, status:formStatus,
+  };
+  if(editingId){
+    const s = DB.find(x=>x.id===editingId);
+    Object.assign(s,data);
+    if(total>0){ s.owned=s.owned.filter(v=>v<=total); s.read=s.read.filter(v=>v<=total); }
+    delete s.pending; // una modifica manuale risolve eventuali dubbi
+    toast("Serie aggiornata");
+  }else{
+    const rec = {id:uid(),...data,owned:[],read:[],ts:Date.now()};
+    // Se mancano dati (autore o volumi o copertina) li recupereremo dal database.
+    // Offline: in coda. Online: provo subito in background.
+    const incomplete = !rec.author || !rec.total || !rec.cover;
+    if(incomplete){
+      rec.pending = "queued";
+      DB.push(rec);
+      if(navigator.onLine){
+        toast("Serie aggiunta · completo i dati…");
+        enrichOne(rec.id);
+      }else{
+        toast("Serie salvata offline · la completo appena c'è rete");
+      }
+    }else{
+      DB.push(rec);
+      toast("Serie aggiunta");
+    }
+  }
+  save(); render(); closeSheets();
+}
+function delSeries(id){
+  DB = DB.filter(s=>s.id!==id);
+  save(); render(); closeSheets();
+  toast("Serie eliminata");
+}
+
+/* ---------- autocomplete (locale + online Jikan) ---------- */
+const TYPE_FROM_JIKAN = {Manga:"manga",Manhwa:"manhwa",Manhua:"manhwa",Comic:"comic",Doujinshi:"manga",Novel:"manga",Light_Novel:"manga"};
+let acTimer=null, acReq=0, acItems=[];
+
+function hideAC(){ const d=$("#acDrop"); d.classList.remove("show"); d.innerHTML=""; acItems=[]; }
+
+function localMatches(q){
+  const seen=new Set(), out=[];
+  for(const s of DB){
+    if(s.title.toLowerCase().includes(q) && !seen.has(s.title.toLowerCase())){
+      seen.add(s.title.toLowerCase());
+      out.push({source:"local",title:s.title,author:s.author,type:s.type,total:s.total,cover:s.cover});
+    }
+    if(out.length>=4) break;
+  }
+  return out;
+}
+
+function renderAC({local,online,loading,error}){
+  const d=$("#acDrop");
+  let html="";
+  if(local.length){
+    html+=`<div class="ac-section">Già in collezione</div>`;
+    html+=local.map((m,i)=>acRow(m,"local",i)).join("");
+  }
+  html+=`<div class="ac-section">Da database online</div>`;
+  if(loading){
+    html+=`<div class="ac-state"><span class="ac-spin"></span>Cerco titoli…</div>`;
+  } else if(error){
+    html+=`<div class="ac-state">Database non raggiungibile (serve connessione). Puoi comunque scrivere il titolo a mano.</div>`;
+  } else if(!online.length){
+    html+=`<div class="ac-state">Nessun risultato online.</div>`;
+  } else {
+    html+=online.map((m,i)=>acRow(m,"online",local.length+i)).join("");
+  }
+  acItems=[...local,...(online||[])];
+  d.innerHTML=html;
+  d.classList.add("show");
+}
+
+function acRow(m,kind,idx){
+  const thumb = m.cover
+    ? `<img src="${esc(m.cover)}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="ph" style="display:none">${esc((m.title||'?')[0])}</span>`
+    : `<span class="ph">${esc((m.title||'?')[0])}</span>`;
+  const sub = [m.author||"", m.total?`${m.total} vol.`:""].filter(Boolean).join(" · ") || "—";
+  return `<div class="ac-item" data-ac="${idx}">
+    <div class="ac-thumb">${thumb}</div>
+    <div class="ac-body">
+      <div class="ac-name">${esc(m.title)}</div>
+      <div class="ac-sub">${esc(sub)}</div>
+    </div>
+    <span class="ac-tag ${kind}">${kind==="local"?"tua":"online"}</span>
+  </div>`;
+}
+
+function onTitleInput(){
+  const q=$("#fTitle").value.trim();
+  if(q.length<2){ hideAC(); return; }
+  const local=localMatches(q.toLowerCase());
+  renderAC({local,online:[],loading:true});
+  clearTimeout(acTimer);
+  const myReq=++acReq;
+  acTimer=setTimeout(()=>fetchOnline(q,myReq,local),320);
+}
+
+/* Chiamata condivisa al database online (usata da autocomplete e coda offline) */
+async function jikanSearch(q,limit=6){
+  const url=`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&limit=${limit}&order_by=popularity&sfw`;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error("http "+res.status);
+  const json=await res.json();
+  return (json.data||[]).map(d=>({
+    source:"online",
+    title:(d.title_english||d.title||"").trim(),
+    title_orig:(d.title||"").trim(),
+    author:(d.authors&&d.authors[0]?d.authors[0].name.split(", ").reverse().join(" "):""),
+    type:TYPE_FROM_JIKAN[d.type]||"manga",
+    total:d.volumes||0,
+    cover:(d.images&&d.images.jpg&&d.images.jpg.image_url)||"",
+  })).filter(m=>m.title);
+}
+
+async function fetchOnline(q,myReq,local){
+  try{
+    const online=await jikanSearch(q,6);
+    if(myReq!==acReq) return; // risposta superata da una più recente
+    renderAC({local,online});
+  }catch(e){
+    if(myReq!==acReq) return;
+    renderAC({local,online:[],error:true});
+  }
+}
+
+function pickAC(idx){
+  const m=acItems[idx]; if(!m) return;
+  $("#fTitle").value=m.title;
+  if(m.author) $("#fAuthor").value=m.author;
+  if(m.total)  $("#fTotal").value=m.total;
+  if(m.cover && !$("#fCover").value) $("#fCover").value=m.cover;
+  if(m.type){ formType=m.type; syncToggles(); }
+  hideAC();
+  toast(m.source==="online"?"Dati precompilati":"Titolo inserito");
+}
+
+/* ---------- coda offline: completa le serie quando torna la rete ---------- */
+let queueRunning=false;
+
+function norm(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim(); }
+
+// quanto un risultato online combacia col titolo cercato: 2=esatto, 1=buono, 0=incerto
+function matchScore(query,m){
+  const q=norm(query), a=norm(m.title), b=norm(m.title_orig);
+  if(q===a||q===b) return 2;
+  if(a.includes(q)||q.includes(a)||b.includes(q)||q.includes(b)) return 1;
+  return 0;
+}
+
+async function enrichOne(id){
+  const s=DB.find(x=>x.id===id);
+  if(!s || s.pending!=="queued") return;
+  try{
+    const results=await jikanSearch(s.title,6);
+    if(!results.length){ markConfirm(id,"nessun risultato trovato"); return; }
+    const best=results[0];
+    const score=matchScore(s.title,best);
+    // completa solo i campi mancanti, non sovrascrive ciò che hai scritto a mano
+    if(!s.author && best.author) s.author=best.author;
+    if(!s.total  && best.total)  s.total=best.total;
+    if(!s.cover  && best.cover)  s.cover=best.cover;
+    if(score>=2){ delete s.pending; }      // match sicuro → risolto
+    else        { s.pending="confirm"; }    // incerto → badge "da confermare"
+    save(); render();
+    if(openDetailId===id) renderDetail(id);
+  }catch(e){
+    // rete caduta di nuovo: resta in coda, riproveremo
+  }
+}
+
+function markConfirm(id,reason){
+  const s=DB.find(x=>x.id===id); if(!s) return;
+  s.pending="confirm"; if(reason) s.pendingReason=reason;
+  save(); render();
+  if(openDetailId===id) renderDetail(id);
+}
+
+async function runQueue(){
+  if(queueRunning || !navigator.onLine) return;
+  const pend=DB.filter(s=>s.pending==="queued");
+  if(!pend.length) return;
+  queueRunning=true;
+  toast(`Completo ${pend.length} serie in coda…`);
+  for(const s of pend){
+    if(!navigator.onLine) break;
+    await enrichOne(s.id);
+    await new Promise(r=>setTimeout(r,650)); // rispetta il limite di richieste dell'API
+  }
+  queueRunning=false;
+  const left=DB.filter(s=>s.pending==="queued").length;
+  if(!left) toast("Serie completate ✓");
+}
+
+function confirmSeries(id){
+  const s=DB.find(x=>x.id===id); if(!s) return;
+  delete s.pending; delete s.pendingReason;
+  save(); render();
+  if(openDetailId===id) renderDetail(id);
+  toast("Confermata ✓");
+}
+
+// avvio: quando l'app parte (se online) e ogni volta che torna la connessione
+window.addEventListener("online", ()=>{ toast("Connessione ripristinata"); runQueue(); });
+window.addEventListener("offline", ()=>{ toast("Offline · le nuove serie verranno completate dopo"); });
+
+/* ---------- detail sheet ---------- */
+function openDetail(id){ openDetailId=id; renderDetail(id); openSheet("#detailSheet"); }
+function renderDetail(id){
+  const s = DB.find(x=>x.id===id); if(!s) return;
+  const owned=s.owned.length, read=s.read.length;
+  const st = STATUS[s.status];
+  const pct = s.total>0?Math.round(read/s.total*100):(owned?Math.round(read/owned*100):0);
+  const maxShow = s.total>0?s.total:owned;
+  let vols="";
+  for(let i=1;i<=maxShow;i++){
+    const o=s.owned.includes(i),r=s.read.includes(i);
+    vols+=`<button class="dvol ${r?'read':o?'owned':''}" data-dvol="${i}" data-id="${id}">${i}</button>`;
+  }
+  vols+=`<button class="dvol dvol-rm" data-addvol="${id}">+</button>`;
+
+  const cover = s.cover
+    ? `<img src="${esc(s.cover)}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><span class="ph" style="display:none">${esc(s.title[0]||'?')}</span>`
+    : `<span class="ph">${esc(s.title[0]||'?')}</span>`;
+
+  $("#detailBody").innerHTML = `
+    <div class="detail-top">
+      <div class="detail-cover">${cover}</div>
+      <div class="detail-meta">
+        <h2>${esc(s.title)}</h2>
+        <div class="auth">${esc(s.author||'—')} · ${TYPE_LABEL[s.type]}</div>
+        <div style="margin-top:9px"><span class="badge ${st.cls}">${st.label}</span></div>
+        ${s.notes?`<div class="notes">${esc(s.notes)}</div>`:''}
+      </div>
+    </div>
+    ${s.pending==="queued"?`<div class="pend-banner queued"><span class="q-dot"></span><div><b>In coda</b><br><span>Completo i dati appena c'è connessione.</span></div></div>`:""}
+    ${s.pending==="confirm"?`<div class="pend-banner confirm"><div><b>Da confermare</b><br><span>Ho completato in automatico${s.pendingReason?` (${esc(s.pendingReason)})`:""}. Controlla che sia giusto.</span></div><button data-confirm="${id}">Conferma</button></div>`:""}
+    <div class="detail-stats">
+      <div class="dstat"><div class="n">${owned}${s.total>0?'<span style="font-size:13px;color:var(--ink-3)">/'+s.total+'</span>':''}</div><div class="l">Posseduti</div></div>
+      <div class="dstat"><div class="n">${read}</div><div class="l">Letti</div></div>
+      <div class="dstat"><div class="n">${pct}%</div><div class="l">Progresso</div></div>
+    </div>
+    <div class="detail-sec-title">Volumi <span class="hint">tocca: possiedi → letto → vuoto</span></div>
+    <div class="detail-vols">${vols}</div>
+    <div class="detail-actions">
+      <button class="edit" data-edit="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Modifica</button>
+      <button data-markall="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Segna tutti letti</button>
+    </div>`;
+}
+function markAllRead(id){
+  const s=DB.find(x=>x.id===id); if(!s) return;
+  const max = s.total>0?s.total:Math.max(0,...s.owned,0);
+  if(max<=0){ toast("Aggiungi prima dei volumi"); return; }
+  s.owned=[]; s.read=[];
+  for(let i=1;i<=max;i++){ s.owned.push(i); s.read.push(i); }
+  if(s.status==="reading"||s.status==="planned"){
+    if(s.total>0 && s.read.length>=s.total) s.status="completed";
+  }
+  save(); render(); renderDetail(id);
+  toast("Tutti segnati come letti");
+}
+
+/* ---------- sheets / overlay ---------- */
+function openSheet(sel){
+  $("#overlay").classList.add("show");
+  $(sel).classList.add("show");
+  document.body.style.overflow="hidden";
+}
+function closeSheets(){
+  $("#overlay").classList.remove("show");
+  document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("show"));
+  $("#menuPop").classList.remove("show");
+  document.body.style.overflow="";
+  openDetailId=null;
+}
+
+/* ---------- context menu ---------- */
+function openMenu(id,btn){
+  const r = btn.getBoundingClientRect();
+  const pop = $("#menuPop");
+  pop.innerHTML = `
+    <button data-open="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>Apri dettaglio</button>
+    <button data-edit="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Modifica</button>
+    <div class="menu-div"></div>
+    <button class="danger" data-del="${id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Elimina</button>`;
+  pop.style.top  = Math.min(r.bottom+6, innerHeight-160)+"px";
+  pop.style.left = Math.min(r.left-130, innerWidth-176)+"px";
+  pop.classList.add("show");
+  $("#overlay").classList.add("show");
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- sort ---------- */
+const SORTS=[["recent","Recenti"],["title","Titolo A-Z"],["progress","Progresso"]];
+function cycleSort(){
+  const i=SORTS.findIndex(x=>x[0]===sortMode);
+  const next=SORTS[(i+1)%SORTS.length];
+  sortMode=next[0]; render(); toast("Ordina: "+next[1]);
+}
+
+/* ---------- events ---------- */
+$("#addFab").onclick=()=>openForm(null);
+$("#sortBtn").onclick=cycleSort;
+$("#overlay").onclick=closeSheets;
+$("#saveBtn").onclick=saveForm;
+$("#search").addEventListener("input",e=>{query=e.target.value;renderList();});
+
+$("#fTitle").addEventListener("input",onTitleInput);
+$("#fTitle").addEventListener("focus",()=>{ if($("#fTitle").value.trim().length>=2) onTitleInput(); });
+$("#acDrop").addEventListener("click",e=>{
+  const it=e.target.closest("[data-ac]");
+  if(it) pickAC(+it.dataset.ac);
+});
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".ac-wrap")) hideAC();
+});
+
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheets);
+
+$("#typeToggle").onclick=e=>{const b=e.target.closest("button");if(b){formType=b.dataset.type;syncToggles();}};
+$("#statusGrid").onclick=e=>{const b=e.target.closest("button");if(b){formStatus=b.dataset.s;syncToggles();}};
+$("#delBtn").onclick=()=>{ if(editingId&&confirm("Eliminare questa serie?")) delSeries(editingId); };
+
+$("#chips").onclick=e=>{const b=e.target.closest(".chip");if(b){filter=b.dataset.f;render();}};
+
+$("#list").addEventListener("click",e=>{
+  const vol=e.target.closest("[data-vol]");
+  if(vol){ toggleVol(vol.dataset.id,+vol.dataset.vol); return; }
+  const av=e.target.closest("[data-addvol]");
+  if(av){ addVolume(av.dataset.addvol); return; }
+  const menu=e.target.closest("[data-menu]");
+  if(menu){ e.stopPropagation(); openMenu(menu.dataset.menu,menu); return; }
+  const open=e.target.closest("[data-open]");
+  if(open){ openDetail(open.dataset.open); return; }
+});
+
+$("#menuPop").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.open){ closeSheets(); openDetail(b.dataset.open); }
+  else if(b.dataset.edit){ closeSheets(); openForm(b.dataset.edit); }
+  else if(b.dataset.del){ if(confirm("Eliminare questa serie?")) delSeries(b.dataset.del); }
+  $("#menuPop").classList.remove("show");
+});
+
+$("#detailBody").addEventListener("click",e=>{
+  const dv=e.target.closest("[data-dvol]");
+  if(dv){ toggleVol(dv.dataset.id,+dv.dataset.dvol); return; }
+  const av=e.target.closest("[data-addvol]");
+  if(av){ addVolume(av.dataset.addvol); return; }
+  const ed=e.target.closest("[data-edit]");
+  if(ed){ closeSheets(); openForm(ed.dataset.edit); return; }
+  const ma=e.target.closest("[data-markall]");
+  if(ma){ markAllRead(ma.dataset.markall); return; }
+  const cf=e.target.closest("[data-confirm]");
+  if(cf){ confirmSeries(cf.dataset.confirm); return; }
+});
+
+render();
+
+// avvio: se ci sono serie in coda e c'è rete, completale ora
+if(navigator.onLine) runQueue();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
