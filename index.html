@@ -14,6 +14,37 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<!-- ============================================================
+     SUPABASE — libreria + configurazione
+     ------------------------------------------------------------
+     La libreria viene caricata da CDN (nessun build step): resta
+     tutto in un unico file statico, impacchettabile come PWA/TWA.
+     ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* ------------------------------------------------------------------
+   CONFIGURAZIONE SUPABASE  —  SOSTITUISCI QUESTI DUE VALORI
+   ------------------------------------------------------------------
+   Dove trovarli:
+   1. Vai su https://supabase.com e crea un progetto gratuito.
+   2. Dashboard del progetto → icona ingranaggio (Project Settings)
+      → sezione "API".
+   3. "Project URL"      → incollalo in SUPABASE_URL
+      "anon" "public" key → incollalo in SUPABASE_ANON_KEY
+
+   NB: la anon key è PUBBLICA per design (finisce nel browser).
+   La sicurezza NON è data dal tenere segreta la chiave, ma dalla
+   Row Level Security attivata nel database (vedi supabase/schema.sql):
+   ogni utente può leggere/scrivere solo le proprie righe.
+
+   Finché questi valori non vengono sostituiti, l'app funziona
+   normalmente in modalità solo-locale (come prima di Supabase).
+------------------------------------------------------------------ */
+const SUPABASE_URL      = "INCOLLA_QUI_IL_PROJECT_URL";        // es. https://abcd1234.supabase.co
+const SUPABASE_ANON_KEY = "INCOLLA_QUI_LA_ANON_PUBLIC_KEY";    // es. eyJhbGciOiJIUzI1NiIs...
+</script>
+
 <style>
 :root{
   --bg:#15110f;
@@ -403,6 +434,59 @@ input,select,textarea{font-family:inherit;font-size:16px}
 .menu-pop button.danger{color:#d9534f}
 .menu-pop button.danger svg{color:#d9534f}
 .menu-div{height:1px;background:var(--line);margin:4px 0}
+
+/* ---- Sync / Account (Supabase) ---- */
+/* Pallino di stato sync accanto al titolo nell'header */
+.sync-dot{
+  width:9px;height:9px;border-radius:50%;flex:none;
+  background:var(--ink-3);transition:.2s;margin-left:2px;
+}
+.sync-dot.ok{background:var(--green)}       /* sincronizzato */
+.sync-dot.pending{background:var(--gold);animation:qpulse 1.1s ease-in-out infinite} /* in coda */
+.sync-dot.off{background:var(--ink-3)}       /* offline / non loggato */
+.sync-dot.err{background:#d9534f}            /* errore */
+
+/* Avviso non invadente "Accedi per sincronizzare" */
+.login-hint{
+  margin:2px 18px 0;padding:9px 13px;border-radius:11px;
+  background:var(--panel);border:1px solid var(--line);
+  display:none;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2);
+}
+.login-hint.show{display:flex}
+.login-hint svg{width:16px;height:16px;color:var(--accent);flex:none}
+.login-hint .go{color:var(--accent);font-weight:700;flex:none;margin-left:auto}
+.login-hint .x{color:var(--ink-3);font-weight:700;padding:0 2px;flex:none}
+
+/* Sheet Account & Backup */
+.acc-block{padding:0 20px 16px}
+.acc-status{
+  display:flex;align-items:center;gap:11px;
+  background:var(--panel-2);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;
+}
+.acc-status .ico{
+  width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent);
+}
+.acc-status .ico svg{width:19px;height:19px}
+.acc-status .txt{flex:1;min-width:0}
+.acc-status .txt b{font-size:14px;display:block}
+.acc-status .txt span{font-size:12px;color:var(--ink-3);word-break:break-all}
+.acc-note{font-size:12.5px;color:var(--ink-3);line-height:1.5;padding:0 20px 14px}
+.acc-btn{
+  width:calc(100% - 40px);margin:0 20px 10px;
+  padding:14px;border-radius:12px;font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--accent);color:#fff;transition:.15s;
+}
+.acc-btn:active{transform:scale(.98)}
+.acc-btn.ghost{background:var(--panel-2);border:1px solid var(--line);color:var(--ink)}
+.acc-btn.danger{background:none;border:1px solid #3a2422;color:#d9534f}
+.acc-btn svg{width:17px;height:17px}
+.acc-btn:disabled{opacity:.5;pointer-events:none}
+.acc-msg{font-size:12.5px;color:var(--ink-2);padding:0 20px 8px;min-height:0;line-height:1.45}
+.acc-msg.ok{color:var(--green)}
+.acc-msg.err{color:#d9534f}
 </style>
 </head>
 <body>
@@ -416,7 +500,7 @@ input,select,textarea{font-family:inherit;font-size:16px}
       </svg>
     </div>
     <div>
-      <h1>Mangateca</h1>
+      <h1 style="display:flex;align-items:center;gap:7px">Mangateca <span class="sync-dot off" id="syncDot" title="Stato sincronizzazione"></span></h1>
       <div class="sub">la tua collezione, volume per volume</div>
     </div>
   </div>
@@ -429,6 +513,17 @@ input,select,textarea{font-family:inherit;font-size:16px}
     <button class="icon-btn" id="sortBtn" aria-label="Ordina">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
     </button>
+    <button class="icon-btn" id="accBtn" aria-label="Account e backup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/><path d="M8 16h.01M8 20h.01M12 18h.01M12 22h.01M16 16h.01M16 20h.01"/></svg>
+    </button>
+  </div>
+
+  <!-- Avviso non invadente: invita al login ma NON blocca l'uso locale -->
+  <div class="login-hint" id="loginHint">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span>Accedi per sincronizzare tra dispositivi</span>
+    <button class="go" id="loginHintGo">Accedi</button>
+    <button class="x" id="loginHintX" aria-label="Nascondi">✕</button>
   </div>
 </div>
 
@@ -506,6 +601,19 @@ input,select,textarea{font-family:inherit;font-size:16px}
   <div id="detailBody"></div>
 </div>
 
+<!-- Sheet Account & Backup (login magic-link + export/import) -->
+<div class="sheet" id="accSheet">
+  <div class="grabber"></div>
+  <div class="sheet-head">
+    <h2>Account e backup</h2>
+    <button class="sheet-close" data-close>Chiudi</button>
+  </div>
+  <div id="accBody"></div>
+</div>
+
+<!-- input nascosto per l'import del file .json -->
+<input type="file" id="importFile" accept="application/json,.json" style="display:none">
+
 <div class="menu-pop" id="menuPop"></div>
 <div class="toast" id="toast"></div>
 
@@ -523,11 +631,15 @@ let formStatus = "reading";
 let openDetailId = null;
 
 function load(){
+  let arr;
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return seed();
+    arr = raw ? JSON.parse(raw) : seed();
+  }catch(e){ arr = seed(); }
+  // Migrazione: ogni record deve avere updated_at (serve per il last-write-wins).
+  // I record vecchi (o il seed) ereditano il loro ts, altrimenti "ora".
+  for(const s of arr){ if(!s.updated_at) s.updated_at = s.ts || Date.now(); }
+  return arr;
 }
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){} }
 
@@ -666,7 +778,7 @@ function toggleVol(id,n){
   else if(hasOwned && !hasRead){ s.read.push(n); }
   else { s.owned = s.owned.filter(v=>v!==n); s.read = s.read.filter(v=>v!==n); }
   s.owned.sort((a,b)=>a-b); s.read.sort((a,b)=>a-b);
-  save(); render();
+  touch(id); save(); render();
   if(openDetailId===id) renderDetail(id);
 }
 
@@ -678,7 +790,7 @@ function addVolume(id){
   if(next===null){ toast("Tutti i volumi sono già posseduti"); return; }
   if(!s.owned.includes(next)) s.owned.push(next);
   s.owned.sort((a,b)=>a-b);
-  save(); render();
+  touch(id); save(); render();
   if(openDetailId===id) renderDetail(id);
   toast(`Volume ${next} aggiunto`);
 }
@@ -718,6 +830,7 @@ function saveForm(){
     Object.assign(s,data);
     if(total>0){ s.owned=s.owned.filter(v=>v<=total); s.read=s.read.filter(v=>v<=total); }
     delete s.pending; // una modifica manuale risolve eventuali dubbi
+    touch(editingId);
     toast("Serie aggiornata");
   }else{
     const rec = {id:uid(),...data,owned:[],read:[],ts:Date.now()};
@@ -727,6 +840,7 @@ function saveForm(){
     if(incomplete){
       rec.pending = "queued";
       DB.push(rec);
+      touch(rec.id);
       if(navigator.onLine){
         toast("Serie aggiunta · completo i dati…");
         enrichOne(rec.id);
@@ -735,6 +849,7 @@ function saveForm(){
       }
     }else{
       DB.push(rec);
+      touch(rec.id);
       toast("Serie aggiunta");
     }
   }
@@ -742,6 +857,7 @@ function saveForm(){
 }
 function delSeries(id){
   DB = DB.filter(s=>s.id!==id);
+  markDeleted(id);
   save(); render(); closeSheets();
   toast("Serie eliminata");
 }
@@ -877,7 +993,7 @@ async function enrichOne(id){
     if(!s.cover  && best.cover)  s.cover=best.cover;
     if(score>=2){ delete s.pending; }      // match sicuro → risolto
     else        { s.pending="confirm"; }    // incerto → badge "da confermare"
-    save(); render();
+    touch(id); save(); render();
     if(openDetailId===id) renderDetail(id);
   }catch(e){
     // rete caduta di nuovo: resta in coda, riproveremo
@@ -887,7 +1003,7 @@ async function enrichOne(id){
 function markConfirm(id,reason){
   const s=DB.find(x=>x.id===id); if(!s) return;
   s.pending="confirm"; if(reason) s.pendingReason=reason;
-  save(); render();
+  touch(id); save(); render();
   if(openDetailId===id) renderDetail(id);
 }
 
@@ -910,14 +1026,22 @@ async function runQueue(){
 function confirmSeries(id){
   const s=DB.find(x=>x.id===id); if(!s) return;
   delete s.pending; delete s.pendingReason;
-  save(); render();
+  touch(id); save(); render();
   if(openDetailId===id) renderDetail(id);
   toast("Confermata ✓");
 }
 
 // avvio: quando l'app parte (se online) e ogni volta che torna la connessione
-window.addEventListener("online", ()=>{ toast("Connessione ripristinata"); runQueue(); });
-window.addEventListener("offline", ()=>{ toast("Offline · le nuove serie verranno completate dopo"); });
+window.addEventListener("online", ()=>{
+  toast("Connessione ripristinata");
+  runQueue();     // coda Jikan: completa i dati mancanti
+  fullSync();     // coda Supabase: sincronizza le modifiche fatte offline
+  refreshSyncDot();
+});
+window.addEventListener("offline", ()=>{
+  toast("Offline · le modifiche verranno sincronizzate dopo");
+  refreshSyncDot();
+});
 
 /* ---------- detail sheet ---------- */
 function openDetail(id){ openDetailId=id; renderDetail(id); openSheet("#detailSheet"); }
@@ -971,7 +1095,7 @@ function markAllRead(id){
   if(s.status==="reading"||s.status==="planned"){
     if(s.total>0 && s.read.length>=s.total) s.status="completed";
   }
-  save(); render(); renderDetail(id);
+  touch(id); save(); render(); renderDetail(id);
   toast("Tutti segnati come letti");
 }
 
@@ -987,6 +1111,7 @@ function closeSheets(){
   $("#menuPop").classList.remove("show");
   document.body.style.overflow="";
   openDetailId=null;
+  accSheetOpen=false;
 }
 
 /* ---------- context menu ---------- */
@@ -1017,6 +1142,386 @@ function cycleSort(){
   const i=SORTS.findIndex(x=>x[0]===sortMode);
   const next=SORTS[(i+1)%SORTS.length];
   sortMode=next[0]; render(); toast("Ordina: "+next[1]);
+}
+
+/* ================================================================
+   SINCRONIZZAZIONE SUPABASE  (il cuore)
+   ----------------------------------------------------------------
+   Strategia offline-first, robusta e semplice:
+   • localStorage è la FONTE DI VERITÀ per la UI: leggo/scrivo lì,
+     così l'app è istantanea e funziona anche senza rete.
+   • Ogni modifica locale mette l'id in una CODA DI SYNC persistente
+     (upserts / deletes) e aggiorna updated_at sul record.
+   • Quando c'è rete e sono loggato, la coda viene spinta su Supabase.
+   • All'avvio (loggato + online) faccio PULL dal server e MERGE con i
+     dati locali: a parità di id vince updated_at più recente (LWW).
+   • Se Supabase non risponde, l'app continua in locale e ritenta più
+     tardi: la coda resta salvata su disco, nessun dato viene perso.
+
+   Le DUE code convivono senza interferire:
+   – coda Jikan  → completa i campi mancanti (autore/volumi/copertina);
+   – coda Supabase → fa il mirror remoto. Ogni volta che Jikan modifica
+     un record, touch() lo rimette anche nella coda Supabase.
+   ================================================================ */
+const Q_KEY        = "mangateca.syncqueue.v1"; // coda di sync persistente
+const SYNCED_FLAG  = "mangateca.syncedonce.v1"; // primo upload fatto su questo device
+const LASTPULL_KEY = "mangateca.lastpull.v1";  // è già stato fatto almeno un pull?
+const HINT_KEY     = "mangateca.hint.dismissed";
+
+let supa = null;        // client supabase (null se non configurato)
+let currentUser = null; // utente loggato (null = modalità solo-locale)
+let syncQueue = {upserts:new Set(), deletes:new Set()};
+let syncing = false;    // fullSync in corso
+let pushing = false;    // pushQueue in corso
+let pushTimer = null;
+let syncState = "off";  // off | ok | pending | err
+let accSheetOpen = false;
+
+/* ---- persistenza della coda ---- */
+function loadQueue(){
+  try{
+    const raw = localStorage.getItem(Q_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      syncQueue.upserts = new Set(o.upserts||[]);
+      syncQueue.deletes = new Set(o.deletes||[]);
+    }
+  }catch(e){}
+}
+function saveQueue(){
+  try{
+    localStorage.setItem(Q_KEY, JSON.stringify({
+      upserts:[...syncQueue.upserts], deletes:[...syncQueue.deletes]
+    }));
+  }catch(e){}
+  refreshSyncDot();
+}
+
+/* ---- marca un record come modificato / eliminato ---- */
+function touch(id){
+  const s = DB.find(x=>x.id===id);
+  if(s) s.updated_at = Date.now();  // timestamp per il last-write-wins
+  syncQueue.upserts.add(id);
+  syncQueue.deletes.delete(id);
+  saveQueue();
+  schedulePush();
+}
+function markDeleted(id){
+  syncQueue.upserts.delete(id);
+  syncQueue.deletes.add(id);
+  saveQueue();
+  schedulePush();
+}
+function schedulePush(){
+  if(!supa || !currentUser) return;         // niente rete/login → resta solo in coda
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(()=>pushQueue(), 800); // debounce: raggruppa modifiche ravvicinate
+}
+
+/* ---- mappatura record locale <-> riga DB ---- */
+function toRow(s){
+  return {
+    id:s.id, user_id:currentUser.id,
+    type:s.type||"manga", title:s.title||"", author:s.author||"",
+    total:s.total||0, status:s.status||"reading",
+    cover:s.cover||"", notes:s.notes||"",
+    owned:s.owned||[], read:s.read||[],
+    ts:s.ts||Date.now(),
+    pending:s.pending||null,
+    updated_at:new Date(s.updated_at||Date.now()).toISOString(),
+  };
+}
+function fromRow(r){
+  const rec = {
+    id:r.id, type:r.type||"manga", title:r.title||"", author:r.author||"",
+    total:r.total||0, status:r.status||"reading",
+    cover:r.cover||"", notes:r.notes||"",
+    owned:Array.isArray(r.owned)?r.owned:[], read:Array.isArray(r.read)?r.read:[],
+    ts:r.ts||Date.now(),
+    updated_at: r.updated_at ? Date.parse(r.updated_at) : (r.ts||Date.now()),
+  };
+  if(r.pending) rec.pending = r.pending; // conserva lo stato coda-Jikan tra i device
+  return rec;
+}
+
+/* ---- PUSH: manda la coda su Supabase ---- */
+async function pushQueue(){
+  if(!supa || !currentUser || !navigator.onLine || pushing) return;
+  pushing = true;
+  try{
+    // upserts (aggiunte/modifiche)
+    const upIds = [...syncQueue.upserts];
+    if(upIds.length){
+      const rows = upIds.map(id=>DB.find(s=>s.id===id)).filter(Boolean).map(toRow);
+      if(rows.length){
+        const {error} = await supa.from("series").upsert(rows, {onConflict:"id"});
+        if(error) throw error;
+      }
+      upIds.forEach(id=>syncQueue.upserts.delete(id)); // svuota anche gli id già eliminati
+    }
+    // deletes (eliminazioni)
+    const delIds = [...syncQueue.deletes];
+    if(delIds.length){
+      const {error} = await supa.from("series").delete().in("id", delIds);
+      if(error) throw error;
+      delIds.forEach(id=>syncQueue.deletes.delete(id));
+    }
+    saveQueue();
+    setSyncState("ok");
+  }catch(e){
+    // Supabase non raggiungibile o errore: la coda resta, ritenteremo dopo.
+    setSyncState("err");
+    console.warn("[sync] push fallito:", e.message||e);
+  }finally{
+    pushing = false;
+  }
+}
+
+/* ---- PULL + MERGE: scarica dal server e fonde con il locale (LWW) ---- */
+async function pullAndMerge(){
+  if(!supa || !currentUser || !navigator.onLine) return;
+  let remote;
+  try{
+    const {data, error} = await supa.from("series").select("*").eq("user_id", currentUser.id);
+    if(error) throw error;
+    remote = (data||[]).map(fromRow);
+  }catch(e){
+    setSyncState("err");
+    console.warn("[sync] pull fallito:", e.message||e);
+    return;
+  }
+  const havePulledBefore = !!localStorage.getItem(LASTPULL_KEY);
+  const localById  = new Map(DB.map(s=>[s.id,s]));
+  const remoteById = new Map(remote.map(s=>[s.id,s]));
+  const allIds = new Set([...localById.keys(), ...remoteById.keys()]);
+  const merged = [];
+  for(const id of allIds){
+    const l = localById.get(id), r = remoteById.get(id);
+    if(l && r){
+      // presente in entrambi → vince updated_at più recente (last-write-wins)
+      if((l.updated_at||0) >= (r.updated_at||0)){
+        merged.push(l);
+        if((l.updated_at||0) > (r.updated_at||0)) syncQueue.upserts.add(id); // il locale è più nuovo → rispingi
+      }else{
+        merged.push(r);                 // il remoto è più nuovo → adotto
+        syncQueue.upserts.delete(id);   // niente da rispingere
+      }
+    }else if(l && !r){
+      // solo locale: o è nuovo (da caricare) o è stato cancellato su un altro device
+      if(syncQueue.upserts.has(id) || !havePulledBefore){
+        merged.push(l);                 // nuovo o primo sync → tengo e caricherò
+        syncQueue.upserts.add(id);
+      }
+      // altrimenti: già sincronizzato in passato e ora assente dal server
+      // ⇒ cancellato altrove ⇒ lo lascio cadere anche qui (delete propagato).
+    }else if(!l && r){
+      // solo remoto: lo adotto, a meno che io lo stia cancellando ora
+      if(!syncQueue.deletes.has(id)) merged.push(r);
+    }
+  }
+  DB = merged;
+  save();
+  render();
+  if(openDetailId) renderDetail(openDetailId);
+  localStorage.setItem(LASTPULL_KEY, String(Date.now()));
+}
+
+/* ---- SYNC COMPLETO: push locale → pull/merge → push finale ---- */
+async function fullSync(){
+  if(!supa || !currentUser || !navigator.onLine || syncing) return;
+  syncing = true;
+  setSyncState("pending");
+  try{
+    // Primo login su questo dispositivo: carico tutta la collezione locale
+    // sull'account (merge lato server), così i dati esistenti non si perdono.
+    if(!localStorage.getItem(SYNCED_FLAG)){
+      DB.forEach(s=>{ if(!s.updated_at) s.updated_at = s.ts||Date.now(); syncQueue.upserts.add(s.id); });
+      saveQueue();
+    }
+    await pushQueue();      // 1) manda su i dati locali nuovi
+    await pullAndMerge();   // 2) scarica e fonde (può riempire la coda con locali più recenti)
+    await pushQueue();      // 3) rispinge gli eventuali record locali risultati più recenti
+    localStorage.setItem(SYNCED_FLAG, "1");
+  }catch(e){
+    setSyncState("err");
+    console.warn("[sync] fullSync:", e.message||e);
+  }finally{
+    syncing = false;
+    refreshSyncDot();
+  }
+}
+
+/* ---- pallino di stato nell'header ---- */
+function setSyncState(st){ syncState = st; refreshSyncDot(); }
+function refreshSyncDot(){
+  const d = $("#syncDot"); if(!d) return;
+  let st;
+  if(!supa || !currentUser || !navigator.onLine) st = "off";
+  else if(syncState === "err") st = "err";
+  else if(syncQueue.upserts.size || syncQueue.deletes.size) st = "pending";
+  else st = "ok";
+  d.className = "sync-dot " + st;
+  d.title = {
+    off: currentUser ? "Offline · sincronizzo appena torna la rete" : "Solo locale · accedi per sincronizzare",
+    ok:  "Tutto sincronizzato",
+    pending: "Modifiche in attesa di sync…",
+    err: "Errore di sync · riproverò",
+  }[st];
+}
+
+/* ---- inizializzazione Supabase + gestione sessione ---- */
+function initSupabase(){
+  loadQueue();
+  const configured = !!(window.supabase && SUPABASE_URL && !SUPABASE_URL.includes("INCOLLA"));
+  if(!configured){ refreshSyncDot(); updateLoginHint(); return; }
+  try{
+    supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+    });
+  }catch(e){ supa = null; refreshSyncDot(); updateLoginHint(); return; }
+  // onAuthStateChange scatta subito con la sessione corrente (INITIAL_SESSION)
+  // e a ogni login/logout, anche quando il magic link riporta all'app.
+  supa.auth.onAuthStateChange((event, session)=>{
+    currentUser = session?.user || null;
+    updateLoginHint();
+    if(accSheetOpen) renderAccSheet();
+    refreshSyncDot();
+    if(currentUser && navigator.onLine) fullSync();
+  });
+}
+
+/* ---- autenticazione magic link ---- */
+async function sendMagicLink(email){
+  if(!supa){ accMsg("Supabase non è configurato.", "err"); return; }
+  email = (email||"").trim();
+  if(!/.+@.+\..+/.test(email)){ accMsg("Inserisci un'email valida.", "err"); return; }
+  const btn = $("#sendLinkBtn"); if(btn){ btn.disabled = true; }
+  accMsg("Invio il link…");
+  try{
+    const {error} = await supa.auth.signInWithOtp({
+      email,
+      options:{ emailRedirectTo: location.href.split("#")[0] } // torna a questa pagina
+    });
+    if(error) throw error;
+    accMsg("Link inviato ✓ Controlla la posta di "+email+" e tocca il link per accedere.", "ok");
+  }catch(e){
+    accMsg("Errore nell'invio: "+(e.message||e), "err");
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+async function signOut(){
+  if(!supa) return;
+  try{ await supa.auth.signOut(); }catch(e){}
+  // Resto in modalità locale: i dati restano come cache offline su questo device.
+  localStorage.removeItem(SYNCED_FLAG);
+  toast("Disconnesso · dati mantenuti in locale");
+}
+
+/* ---- sheet Account & Backup ---- */
+function openAccSheet(){ accSheetOpen = true; renderAccSheet(); openSheet("#accSheet"); }
+function accMsg(text, cls){
+  const el = $("#accMsg"); if(!el) return;
+  el.textContent = text||""; el.className = "acc-msg" + (cls ? " "+cls : "");
+}
+function renderAccSheet(){
+  const configured = !!supa;
+  let html = "";
+  if(configured && currentUser){
+    html += `<div class="acc-block"><div class="acc-status">
+      <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div class="txt"><b>Sincronizzazione attiva</b><span>${esc(currentUser.email||"")}</span></div>
+    </div></div>`;
+    html += `<div class="acc-msg" id="accMsg"></div>`;
+    html += `<button class="acc-btn" id="syncNowBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 22v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.85-3.36L21 8M21 15a9 9 0 0 1-14.85 3.36L3 16"/></svg>Sincronizza ora</button>`;
+    html += `<button class="acc-btn danger" id="signOutBtn">Esci</button>`;
+  }else if(configured){
+    html += `<div class="acc-note">Accedi con la tua email per sincronizzare la collezione tra più dispositivi: ricevi un <b>link magico</b>, senza password. Senza login l'app funziona comunque in locale su questo dispositivo.</div>`;
+    html += `<div class="acc-block"><div class="field" style="padding:0"><label>Email</label><input id="accEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@esempio.com"></div></div>`;
+    html += `<div class="acc-msg" id="accMsg"></div>`;
+    html += `<button class="acc-btn" id="sendLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="m4 6 8 6 8-6"/></svg>Invia link di accesso</button>`;
+  }else{
+    html += `<div class="acc-note">Sincronizzazione non ancora attiva: le chiavi Supabase non sono state inserite in <b>index.html</b> (<code>SUPABASE_URL</code> / <code>SUPABASE_ANON_KEY</code>). L'app funziona in locale; il backup manuale qui sotto è sempre disponibile.</div>`;
+  }
+  // ---- Backup manuale: sempre disponibile, anche senza login ----
+  html += `<div class="menu-div" style="margin:6px 20px 16px"></div>`;
+  html += `<div class="acc-note" style="padding-bottom:8px">Backup manuale della collezione (rete di sicurezza).</div>`;
+  html += `<button class="acc-btn ghost" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>Esporta collezione (.json)</button>`;
+  html += `<button class="acc-btn ghost" id="importBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5M12 3v12"/></svg>Importa collezione (.json)</button>`;
+  $("#accBody").innerHTML = html;
+
+  // wiring dei pulsanti appena creati
+  const on = (sel, fn)=>{ const el=$(sel); if(el) el.onclick=fn; };
+  on("#sendLinkBtn", ()=>sendMagicLink($("#accEmail")?.value));
+  on("#syncNowBtn", ()=>{ toast("Sincronizzo…"); fullSync(); });
+  on("#signOutBtn", ()=>{ signOut(); });
+  on("#exportBtn", exportJSON);
+  on("#importBtn", ()=>$("#importFile").click());
+}
+function updateLoginHint(){
+  const hint = $("#loginHint"); if(!hint) return;
+  const dismissed = localStorage.getItem(HINT_KEY) === "1";
+  hint.classList.toggle("show", !!supa && !currentUser && !dismissed);
+}
+
+/* ---- Export / Import (.json) ---- */
+function exportJSON(){
+  const payload = { app:"mangateca", version:1, exportedAt:new Date().toISOString(), series:DB };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `mangateca-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  toast("Backup esportato");
+}
+function importJSON(file){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      const incoming = Array.isArray(parsed) ? parsed : (parsed.series||[]);
+      if(!Array.isArray(incoming)) throw new Error("formato non valido");
+      mergeImported(incoming);
+    }catch(e){ toast("File .json non valido"); }
+  };
+  reader.readAsText(file);
+}
+function normalizeImported(r){
+  if(!r || !r.title) return null;
+  const ua = r.updated_at
+    ? (typeof r.updated_at === "string" ? Date.parse(r.updated_at) : r.updated_at)
+    : (r.ts || Date.now());
+  const rec = {
+    id: r.id || uid(),
+    type: r.type || "manga",
+    title: String(r.title),
+    author: r.author || "",
+    total: parseInt(r.total) || 0,
+    status: r.status || "reading",
+    cover: r.cover || "",
+    notes: r.notes || "",
+    owned: Array.isArray(r.owned) ? r.owned : [],
+    read:  Array.isArray(r.read)  ? r.read  : [],
+    ts: r.ts || Date.now(),
+    updated_at: ua,
+  };
+  if(r.pending) rec.pending = r.pending;
+  return rec;
+}
+function mergeImported(incoming){
+  const byId = new Map(DB.map(s=>[s.id, s]));
+  let added=0, updated=0;
+  for(const raw of incoming){
+    const s = normalizeImported(raw);
+    if(!s) continue;
+    const ex = byId.get(s.id);
+    if(!ex){ DB.push(s); byId.set(s.id, s); added++; touch(s.id); }               // nuova
+    else if((s.updated_at||0) > (ex.updated_at||0)){ Object.assign(ex, s); updated++; touch(s.id); } // più recente
+  }
+  save(); render();
+  toast(`Import: ${added} nuove · ${updated} aggiornate`);
 }
 
 /* ---------- events ---------- */
@@ -1076,10 +1581,23 @@ $("#detailBody").addEventListener("click",e=>{
   if(cf){ confirmSeries(cf.dataset.confirm); return; }
 });
 
+/* ---------- eventi account / backup ---------- */
+$("#accBtn").onclick=openAccSheet;
+$("#loginHintGo").onclick=openAccSheet;
+$("#loginHintX").onclick=()=>{ localStorage.setItem(HINT_KEY,"1"); updateLoginHint(); };
+$("#importFile").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(f) importJSON(f); e.target.value=""; // reset per reimportare lo stesso file
+});
+
 render();
 
-// avvio: se ci sono serie in coda e c'è rete, completale ora
+// avvio: se ci sono serie in coda e c'è rete, completale ora (coda Jikan)
 if(navigator.onLine) runQueue();
+
+// avvio Supabase: legge la sessione salvata, aggiorna la UI e sincronizza
+initSupabase();
+refreshSyncDot();
+updateLoginHint();
 </script>
 <script>
 if ("serviceWorker" in navigator) {
